@@ -1,69 +1,75 @@
 //jshint esversion:6
 const express = require('express');
-const ejs='ejs';
+const ejs = require('ejs');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const app = express();
+const encrypt = require("mongoose-encryption");
 
-app.set('view engine', 'ejs');
-app.use(bodyParser.urlencoded({ extended: true }));
+app.set("views engine", "ejs");
+app.use(bodyParser.urlencoded({extended: true}));
 app.use(express.static("public"));
 
-// ____________________ mongoose___________________________________________
+// __________________________________ mongoose___________________________________________
 
-mongoose.connect("mongodb://localhost:27017/userDB", { useNewUrlParser: true });
-const userSchema = {
-    email: String,
-    password: String
-}
-const User = new mongoose.model("User", userSchema);
+mongoose.connect("mongodb://localhost:27017/userDB",{useNewUrlParser:true});
+ const userSchema = new mongoose.Schema({
+   email:String,
+   password:String
+ });
 
-app.get('/', function (req, res) {
-    res.render("home");
+ const secret = "this is a little secret.";
+ userSchema.plugin(encrypt,{secret:Secret,encryptedFields:["password"]});
+
+
+const User =new mongoose.model("User",userSchema);
+
+app.get('/', function(req, res){
+res.render("home");
 });
 
-app.get('/login', function (req, res) {
-    res.render("login");
+app.get('/login', function(req, res){
+res.render("login");
 });
 
-app.get('/register', function (req, res) {
-    res.render("register");
+app.get('/register', function(req, res){
+res.render("register");
 });
 
-app.post("/register", function (req, res) {
-    const newUser = new User({
-        email: req.body.username,
-        password: req.body.password
-    });
-    newUser.save(function (err) {
-        if (err) {
-            console.log(err);
-        } else {
-            console.log("secrets");
+app.post("/register",function(req,res){
+  const newUser = new User({
+    email:req.body.username,
+    password:req.body.password
+  });
+  newUser.save(function(err){
+    if(err){
+      console.log(err);
+    }else{
+      console.log("secrets");
+    }
+  });
+});
+
+app.post("/login",function(req,res){
+  const username=req.body.username;
+  const password=req.body.password;
+
+  User.findOne({email:username},function(err,foundUser){
+    if(err){
+      console.log(err);
+    }else{
+      if(foundUser){
+        if(foundUser.password===password){
+          res.render("secrets");
         }
-    });
-});
-
-app.post("/login", function (req, res) {
-    const username = req.body.username;
-    const password = req.body.password;
-
-    User.findOne({ email: username }, function (err, foundUser) {
-        if (err) {
-            console.log(err);
-        } else {
-            if (foundUser) {
-                if (foundUser.password === password) {
-                    res.render("secrets");
-                }
-            }
-        }
-    });
+      }
+    }
+  });
 
 });
 
 
 
-app.listen(3000, function () {
-    console.log("server has started");
+app.listen(3000, function(){
+  console.log("server has started");
 })
